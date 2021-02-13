@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import * as path from "path";
 import * as semver from "semver";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
@@ -69,7 +70,13 @@ async function main(): Promise<void> {
   let config: configT = {};
   const config_path = core.getInput("config", { required: false });
   if (config_path) {
-    const mod = await import(config_path);
+    const p1 = process.cwd();
+    const p2 = config_path;
+    const p3 = path.join(p1, p2);
+    console.log("p1:", p1);
+    console.log("p2:", p2);
+    console.log("p3:", p3);
+    const mod = await import(p3);
     config = mod.default;
   }
   {
@@ -189,11 +196,10 @@ async function main(): Promise<void> {
   // console.log("responses are:");
   // console.log(responses.map((response) => response.data));
   // TODO: should we filter out pull requests that are still open?
-  if (responses.some((response) => response.data.length !== 1)) {
-    // TODO: should we allow this case?
-    throw new Error("more than one PR associated with the same commit!!!");
+  const pull_requests = [];
+  for (const response of responses) {
+    pull_requests.push(...response.data);
   }
-  const pull_requests = responses.map((response) => response.data[0]);
   // console.log("pull_requests are:");
   // console.log(pull_requests.map((pull_request) => pull_request.number));
 
@@ -214,9 +220,16 @@ async function main(): Promise<void> {
   // );
 
   // group the pull requests by labels
-  const grouped_pull_requests = groupBy(unique_pull_requests, (x) =>
-    x.labels && x.labels.length > 0 && x.labels[0].name ? x.labels[0].name : "default_group"
-  );
+  const grouped_pull_requests = groupBy(unique_pull_requests, (x) => {
+    const label = x.labels && x.labels.length > 0 && x.labels[0].name ? x.labels[0].name : "";
+    if (!config.sections) return "";
+    for (const section of config.sections) {
+      if (section.labels.includes(label)) {
+        return section.title;
+      }
+    }
+    return "";
+  });
   // console.log("before sorting");
   // console.log(grouped_pull_requests);
   // for (const label in grouped_pull_requests) {
@@ -230,8 +243,10 @@ async function main(): Promise<void> {
   //   );
   // }
   // sort pull requests by commit timestamp
-  for (const label in grouped_pull_requests) {
-    grouped_pull_requests[label].sort((x, y) => (x.merged_at && y.merged_at && x.merged_at > y.merged_at ? -1 : 1));
+  for (const section_title in grouped_pull_requests) {
+    grouped_pull_requests[section_title].sort((x, y) =>
+      x.merged_at && y.merged_at && x.merged_at > y.merged_at ? -1 : 1
+    );
   }
   // console.log("after sorting");
   // console.log(grouped_pull_requests);
@@ -248,14 +263,11 @@ async function main(): Promise<void> {
   // fill the template using the grouped sorted pull requests
   const section_change_logs = [];
   for (const section of config.sections) {
+    if (!(section.title in grouped_pull_requests)) continue;
     const section_change_log = ["\n## " + section.title + "\n"];
-    for (const label in grouped_pull_requests) {
-      if (section.labels.includes(label)) {
-        const prs = grouped_pull_requests[label];
-        for (const pr of prs) {
-          section_change_log.push(config.line_template(pr));
-        }
-      }
+    const prs = grouped_pull_requests[section.title];
+    for (const pr of prs) {
+      section_change_log.push(config.line_template(pr));
     }
     section_change_logs.push(section_change_log.join("\n"));
   }
