@@ -1,0 +1,31 @@
+name: "create-release-draft"
+description: "Prepare the change log and create the release draft."
+author: "Harikrishnan Balagopal"
+inputs:
+  tag:
+    required: true
+    description: "An existing tag to use for the release draft."
+  prev_tag:
+    required: true
+    description: "The previous tag to start calculating the changelog from."
+  title:
+    required: true
+    description: "The title for the release draft."
+  token:
+    required: true
+    description: "GitHub API token with push permissions to use for creating the release draft."
+  owner:
+    required: false
+    description: "Owner of the repo to create the release draft for. Default is the current owner."
+    default: ""
+  repo:
+    required: false
+    description: "Repo to create the release draft for. Default is the current repo."
+    default: ""
+  prerelease:
+    required: false
+    description: "Set to true if this is a prerelease. Default is false."
+    default: ""
+runs:
+  using: "node12"
+  main: "dist/index.js"
