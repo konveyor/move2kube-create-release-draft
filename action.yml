@@ -2,29 +2,50 @@ name: "create-release-draft"
 description: "Prepare the change log and create the release draft."
 author: "Harikrishnan Balagopal"
 inputs:
+  token:
+    required: true
+    description: "GitHub API token with push permissions to the repo. Used for creating the release draft."
   tag:
     required: true
     description: "An existing tag to use for the release draft."
   prev_tag:
     required: true
-    description: "The previous tag to start calculating the changelog from."
-  title:
-    required: true
-    description: "The title for the release draft."
-  token:
-    required: true
-    description: "GitHub API token with push permissions to use for creating the release draft."
+    description: "The previous tag to start calculating the change log from."
   owner:
     required: false
-    description: "Owner of the repo to create the release draft for. Default is the current owner."
+    description: "Owner of the repo to create the release draft for. Default is the owner of the current repo."
     default: ""
   repo:
     required: false
     description: "Repo to create the release draft for. Default is the current repo."
     default: ""
+  title:
+    required: false
+    description: "The title for the release draft. Default is 'Release ' + tag."
+    default: ""
+  title_prefix:
+    required: false
+    description: "title = prefix + tag. If both title and title_prefix are specified then title takes priority."
+    default: ""
+  header:
+    required: false
+    description: "The header will be placed before the change log in the release body. Default empty string."
+    default: ""
+  footer:
+    required: false
+    description: "The footer will be placed after the change log in the release body. Default empty string."
+    default: ""
+  draft:
+    required: false
+    description: "Set to false to publish this release draft. Default is true."
+    default: ""
   prerelease:
     required: false
-    description: "Set to true if this is a prerelease. Default is false."
+    description: "Set to true if this is a prerelease. By default it parses the tag as a semantic version to see if it is a prerelease."
+    default: ""
+  config:
+    required: false
+    description: "Path to a configuration file. By default no config is used. The settings specified here override those in the config."
     default: ""
 runs:
   using: "node12"

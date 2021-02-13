@@ -6,15 +6,40 @@ Prepare the change log and create the release draft.
 
 | Name | Description | Required |
 | --- | --- | --- |
+| token | GitHub API token with push permissions to the repo. Used for creating the release draft. | true |
 | tag | An existing tag to use for the release draft. | true |
-| prev_tag | The previous tag to start calculating the changelog from. | true |
-| title | The title for the release draft. | true |
-| token | GitHub API token with push permissions to use for creating the release draft. | true |
-| owner | Owner of the repo to create the release draft for. Default is the current owner. | false |
+| prev_tag | The previous tag to start calculating the change log from. | true |
+| owner | Owner of the repo to create the release draft for. Default is the owner of the current repo. | false |
 | repo | Repo to create the release draft for. Default is the current repo. | false |
-| prerelease | Set to true if this is a prerelease. Default is false. | false |
+| title | The title for the release draft. Default is 'Release ' + tag. | false |
+| title_prefix | title = prefix + tag. If both title and title_prefix are specified then title takes priority. | false |
+| header | The header will be placed before the change log in the release body. Default empty string. | false |
+| footer | The footer will be placed after the change log in the release body. Default empty string. | false |
+| draft | Set to false to publish this release draft. Default is true. | false |
+| prerelease | Set to true if this is a prerelease. By default it parses the tag as a semantic version to see if it is a prerelease. | false |
+| config | Path to a configuration file. By default no config is used. The settings specified here override those in the config. | false |
 
-## Example
+## Configuration
+
+The config file is just a `.js` javascript file containing the same settings as above and some extras. Example:
+
+```
+module.exports = {
+    title_prefix: "My App ",
+    // valid PR types: ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert']
+    sections:
+        [
+            { title: "🚀 Features", labels: ["enhancement", "feat", "perf"] },
+            { title: "🐛 Bug Fixes", labels: ["bug", "fix", "revert"] },
+            { title: "🧹 Maintenance", labels: ["docs", "style", "refactor", "test", "build", "ci", "chore"] },
+        ],
+    header: `For more documentation and support please visit https://konveyor.io/move2kube/
+# Changelog`,
+    line_template: x => `- ${x.title} [#${x.number}](${x.html_url})`,
+}
+```
+
+## Example change log
 
 ```
 For more documentation and support please visit https://konveyor.io/move2kube/

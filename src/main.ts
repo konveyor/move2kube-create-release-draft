@@ -1,10 +1,12 @@
-
 /*
 Copyright IBM Corporation 2020
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
   http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -12,22 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import * as semver from "semver";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { components } from "@octokit/openapi-types/generated/types";
 
 type prT = components["schemas"]["pull-request-simple"];
 
-const preamble = `For more documentation and support please visit https://konveyor.io/move2kube/
-# Changelog`;
+type sectionT = { title: string; labels: Array<string> };
 
-const sections = [
+interface configT {
+  repo?: string;
+  owner?: string;
+  title?: string;
+  header?: string;
+  footer?: string;
+  draft?: boolean;
+  prerelease?: boolean;
+  title_prefix?: string;
+  line_template?: (x: prT) => string;
+  sections?: Array<sectionT>;
+}
+
+const default_sections: Array<sectionT> = [
   { title: "🚀 Features", labels: ["enhancement", "feat", "perf"] },
   { title: "🐛 Bug Fixes", labels: ["bug", "fix", "revert"] },
   { title: "🧹 Maintenance", labels: ["docs", "style", "refactor", "test", "build", "ci", "chore"] },
 ];
 
-function get_change_log_line(x: prT) {
+function default_line_template(x: prT) {
   return `- ${x.title} [#${x.number}](${x.html_url})`;
 }
 
@@ -47,14 +62,51 @@ function groupBy<T>(xs: Array<T>, get_group: (x: T) => string) {
 async function main(): Promise<void> {
   const context = github.context;
 
-  const title = core.getInput("title", { required: true });
   const next_tag = core.getInput("tag", { required: true });
   const prev_tag = core.getInput("prev_tag", { required: true });
   const token = core.getInput("token", { required: true });
-  const owner = core.getInput("owner", { required: false }) || context.repo.owner;
-  const repo = core.getInput("repo", { required: false }) || context.repo.repo;
-  const prerelease_str = core.getInput("prerelease", { required: false }) || "false";
-  const prerelease = prerelease_str === "true";
+
+  let config: configT = {};
+  const config_path = core.getInput("config", { required: false });
+  if (config_path) {
+    const mod = await import(config_path);
+    config = mod.default;
+  }
+  {
+    if (!config.line_template) config.line_template = default_line_template;
+    if (!config.sections) config.sections = default_sections;
+
+    const header = core.getInput("header", { required: false });
+    if (header) config.header = header;
+
+    const footer = core.getInput("footer", { required: false });
+    if (footer) config.footer = footer;
+
+    const title_prefix = core.getInput("title_prefix", { required: false });
+    if (title_prefix) config.title_prefix = title_prefix;
+
+    if (!config.title) config.title = config.title_prefix ? config.title_prefix + next_tag : "Release " + next_tag;
+    const title = core.getInput("title", { required: false });
+    if (title) config.title = title;
+
+    if (!("draft" in config)) config.draft = true;
+    const draft = core.getInput("draft", { required: false });
+    if (draft) config.draft = draft === "true";
+
+    if (!("prerelease" in config)) config.prerelease = semver.prerelease(next_tag) !== null;
+    const prerelease = core.getInput("prerelease", { required: false });
+    if (prerelease) config.prerelease = prerelease === "true";
+
+    if (!config.owner) config.owner = context.repo.owner;
+    const owner = core.getInput("owner", { required: false });
+    if (owner) config.owner = owner;
+
+    if (!config.repo) config.repo = context.repo.repo;
+    const repo = core.getInput("repo", { required: false });
+    if (repo) config.repo = repo;
+  }
+  const owner: string = config.owner;
+  const repo: string = config.repo;
 
   const oct = github.getOctokit(token);
 
@@ -195,33 +247,36 @@ async function main(): Promise<void> {
   // }
   // fill the template using the grouped sorted pull requests
   const section_change_logs = [];
-  for (const section of sections) {
+  for (const section of config.sections) {
     const section_change_log = ["\n## " + section.title + "\n"];
     for (const label in grouped_pull_requests) {
       if (section.labels.includes(label)) {
         const prs = grouped_pull_requests[label];
         for (const pr of prs) {
-          section_change_log.push(get_change_log_line(pr));
+          section_change_log.push(config.line_template(pr));
         }
       }
     }
     section_change_logs.push(section_change_log.join("\n"));
   }
-  const release_body = preamble + "\n" + section_change_logs.join("\n");
+  const release_body = [];
+  if (config.header) release_body.push(config.header);
+  release_body.push(section_change_logs.join("\n"));
+  if (config.footer) release_body.push(config.footer);
 
   console.log("the title is:");
-  console.log(title);
+  console.log(config.title);
   console.log("the release body is:");
-  console.log(release_body);
+  console.log(release_body.join("\n"));
 
   await oct.repos.createRelease({
     owner,
     repo,
-    draft: true,
-    prerelease,
+    draft: config.draft,
+    prerelease: config.prerelease,
     tag_name: next_tag,
-    name: title,
-    body: release_body,
+    name: config.title,
+    body: release_body.join("\n"),
   });
 }
 
