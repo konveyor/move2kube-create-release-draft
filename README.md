@@ -1,6 +1,15 @@
 # create-release-draft
 
-Prepare the change log and create the release draft.
+Prepare the change log and create the release draft. The change log is created using labelled pull requests.  
+The change log can have several sections. Each section can have a set of labels used to filter pull requests.
+
+Process for creating the change log is:
+1. We find the 2 commits associated with tag and prev_tag.
+1. We find all the commits between the 2 commits.
+1. We find all the pull requests that are associated with these commits.
+1. We group the pull requests by label.
+1. We sort the pull requests in each group by timestamp.
+1. We create each line in each section using line = line_template(pull_request).
 
 ## Action Inputs
 
