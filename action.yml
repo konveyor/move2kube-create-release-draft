@@ -35,6 +35,10 @@ inputs:
     required: false
     description: "The footer will be placed after the change log in the release body. Default empty string."
     default: ""
+  no_changes_message:
+    required: false
+    description: "This message will be placed in the release body when the change log is empty."
+    default: "No changes from the previous release."
   draft:
     required: false
     description: "Set to false to publish this release draft. Default is true."

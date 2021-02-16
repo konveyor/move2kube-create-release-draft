@@ -24,6 +24,7 @@ Process for creating the change log is:
 | title_prefix | title = prefix + tag. If both title and title_prefix are specified then title takes priority. | false |
 | header | The header will be placed before the change log in the release body. Default empty string. | false |
 | footer | The footer will be placed after the change log in the release body. Default empty string. | false |
+| no_changes_message | This message will be placed in the release body when the change log is empty. Default is "No changes from the previous release." | false |
 | draft | Set to false to publish this release draft. Default is true. | false |
 | prerelease | Set to true if this is a prerelease. By default it parses the tag as a semantic version to see if it is a prerelease. | false |
 | config | Path to a configuration file. By default no config is used. The settings specified here override those in the config. | false |
