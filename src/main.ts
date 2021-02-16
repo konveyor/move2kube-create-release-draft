@@ -33,9 +33,12 @@ interface configT {
   draft?: boolean;
   prerelease?: boolean;
   title_prefix?: string;
+  no_changes_message?: string;
   line_template?: (x: prT) => string;
   sections?: Array<sectionT>;
 }
+
+const default_no_changes_message = "No changes from the previous release.";
 
 const default_sections: Array<sectionT> = [
   { title: "🚀 Features", labels: ["enhancement", "feat", "perf"] },
@@ -88,6 +91,10 @@ async function main(): Promise<void> {
 
     const footer = core.getInput("footer", { required: false });
     if (footer) config.footer = footer;
+
+    if (!config.no_changes_message) config.no_changes_message = default_no_changes_message;
+    const no_changes_message = core.getInput("no_changes_message", { required: false });
+    if (no_changes_message) config.no_changes_message = no_changes_message;
 
     const title_prefix = core.getInput("title_prefix", { required: false });
     if (title_prefix) config.title_prefix = title_prefix;
@@ -153,26 +160,36 @@ async function main(): Promise<void> {
 
   const commits = [];
   if (next_commit_resp.data.sha === prev_commit_resp.data.sha) {
-    throw new Error("tag is same as the previous tag. changelog will be empty!!");
-  } else {
-    let parent_commit_resp = next_commit_resp;
-    while (parent_commit_resp.status === 200) {
-      commits.push(parent_commit_resp.data);
-      const parents = parent_commit_resp.data.parents;
-      if (parents.length !== 1) {
-        throw new Error(`expected there to be a single parent. found: ${JSON.stringify(parents)}`);
-      }
-      const parent = parents[0];
-      if (parent.sha === prev_tag_sha) {
-        console.log("reached the previous tag commit!!!");
-        break;
-      }
-      parent_commit_resp = await oct.git.getCommit({
-        owner,
-        repo,
-        commit_sha: parent.sha,
-      });
+    console.log("tag is same as the previous tag. changelog will be empty!!");
+    await oct.repos.createRelease({
+      owner,
+      repo,
+      draft: config.draft,
+      prerelease: config.prerelease,
+      tag_name: next_tag,
+      name: config.title,
+      body: config.no_changes_message,
+    });
+    return;
+  }
+
+  let parent_commit_resp = next_commit_resp;
+  while (parent_commit_resp.status === 200) {
+    commits.push(parent_commit_resp.data);
+    const parents = parent_commit_resp.data.parents;
+    if (parents.length !== 1) {
+      throw new Error(`expected there to be a single parent. found: ${JSON.stringify(parents)}`);
     }
+    const parent = parents[0];
+    if (parent.sha === prev_tag_sha) {
+      console.log("reached the previous tag commit!!!");
+      break;
+    }
+    parent_commit_resp = await oct.git.getCommit({
+      owner,
+      repo,
+      commit_sha: parent.sha,
+    });
   }
 
   // console.log("the commits are:");
@@ -273,7 +290,7 @@ async function main(): Promise<void> {
   }
   const release_body = [];
   if (config.header) release_body.push(config.header);
-  release_body.push(section_change_logs.join("\n"));
+  release_body.push(section_change_logs.length > 0 ? section_change_logs.join("\n") : config.no_changes_message);
   if (config.footer) release_body.push(config.footer);
 
   console.log("the title is:");
