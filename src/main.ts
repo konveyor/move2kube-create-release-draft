@@ -38,7 +38,8 @@ interface configT {
   sections?: Array<sectionT>;
 }
 
-const default_no_changes_message = "No changes from the previous release.";
+const DEFAULT_NO_CHANGES_MESSAGE = "No changes from the previous release.";
+const GITHUB_ABUSE_LIMIT = 4;
 
 const default_sections: Array<sectionT> = [
   { title: "🚀 Features", labels: ["enhancement", "feat", "perf"] },
@@ -48,6 +49,18 @@ const default_sections: Array<sectionT> = [
 
 function default_line_template(x: prT) {
   return `- ${x.title} [#${x.number}](${x.html_url})`;
+}
+
+function getBatches<T>(xs: Array<T>, batchSize: number) {
+  const batches: Array<Array<T>> = [];
+  xs.forEach((x, i) => {
+    if (i % batchSize === 0) {
+      batches.push([x]);
+    } else {
+      batches[batches.length - 1].push(x);
+    }
+  });
+  return batches;
 }
 
 function groupBy<T>(xs: Array<T>, get_group: (x: T) => string) {
@@ -92,7 +105,7 @@ async function main(): Promise<void> {
     const footer = core.getInput("footer", { required: false });
     if (footer) config.footer = footer;
 
-    if (!config.no_changes_message) config.no_changes_message = default_no_changes_message;
+    if (!config.no_changes_message) config.no_changes_message = DEFAULT_NO_CHANGES_MESSAGE;
     const no_changes_message = core.getInput("no_changes_message", { required: false });
     if (no_changes_message) config.no_changes_message = no_changes_message;
 
@@ -202,14 +215,20 @@ async function main(): Promise<void> {
   //   }))
   // );
   // commit list -> pr list
-  const promises = commits.map((commit) =>
-    oct.repos.listPullRequestsAssociatedWithCommit({
-      owner,
-      repo,
-      commit_sha: commit.sha,
-    })
-  );
-  const responses = await Promise.all(promises);
+
+  const batches = getBatches(commits, GITHUB_ABUSE_LIMIT);
+  const responses = [];
+  for (const batch of batches) {
+    const promises = batch.map((commit) =>
+      oct.repos.listPullRequestsAssociatedWithCommit({
+        owner,
+        repo,
+        commit_sha: commit.sha,
+      })
+    );
+    const batchResponses = await Promise.all(promises);
+    responses.push(...batchResponses);
+  }
   // console.log("responses are:");
   // console.log(responses.map((response) => response.data));
   // TODO: should we filter out pull requests that are still open?
