@@ -25,9 +25,9 @@
   "author": "Harikrishnan Balagopal",
   "license": "Apache-2.0",
   "dependencies": {
-    "@actions/core": "^1.2.6",
+    "@actions/core": "^1.6.0",
     "@actions/github": "^4.0.0",
-    "@octokit/rest": "^18.1.0",
+    "@octokit/rest": "^18.12.0",
     "semver": "^7.3.4"
   },
   "devDependencies": {
@@ -35,7 +35,7 @@
     "@types/node": "^14.14.27",
     "@types/semver": "^7.3.4",
     "@typescript-eslint/eslint-plugin": "^4.15.0",
-    "@typescript-eslint/parser": "^4.15.0",
+    "@typescript-eslint/parser": "^4.33.0",
     "@vercel/ncc": "^0.25.1",
     "eslint": "^7.20.0",
     "eslint-plugin-github": "^4.1.1",
