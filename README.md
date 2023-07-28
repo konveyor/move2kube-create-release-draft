@@ -1,4 +1,6 @@
 # create-release-draft
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkonveyor%2Fcreate-release-draft.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkonveyor%2Fcreate-release-draft?ref=badge_shield)
+
 
 Prepare the change log and create the release draft. The change log is created using labelled pull requests.  
 The change log can have several sections. Each section can have a set of labels used to filter pull requests.
@@ -72,3 +74,6 @@ For more documentation and support please visit https://konveyor.io/move2kube/
 - chore: combine all 3 steps of asking a question into a single function call [#418](https://github.com/konveyor/move2kube/pull/418)
 - chore: octokit is not defined in github workflows, use github instead [#413](https://github.com/konveyor/move2kube/pull/413)
 ```
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkonveyor%2Fcreate-release-draft.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkonveyor%2Fcreate-release-draft?ref=badge_large)
